@@ -1,0 +1,20 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.TurkerYakup/mcp-server-google-antigravity",
+  "description": "MCP facade and per-user global broker for Google Antigravity (agy CLI / Gemini): isolated sessions, persistent stream-json workers, jobs, codebase analysis, and file tools.",
+  "repository": {
+    "url": "https://github.com/TurkerYakup/mcp-server-google-antigravity",
+    "source": "github"
+  },
+  "version": "2.0.0",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "mcp-server-google-antigravity",
+      "version": "2.0.0",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ]
+}

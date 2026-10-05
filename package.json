@@ -1,0 +1,60 @@
+{
+  "name": "mcp-server-google-antigravity",
+  "version": "2.0.0",
+  "mcpName": "io.github.TurkerYakup/mcp-server-google-antigravity",
+  "description": "MCP facade and per-user Antigravity broker with isolated sessions, bounded persistent workers, shared OAuth, and centrally managed jobs.",
+  "main": "index.js",
+  "bin": {
+    "mcp-server-google-antigravity": "index.js"
+  },
+  "scripts": {
+    "start": "node index.js",
+    "check": "node --check index.js && node --check broker.js && node --check broker-runtime.js",
+    "test": "node --test",
+    "prepublishOnly": "npm run check && npm test"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "antigravity",
+    "google-antigravity",
+    "agy",
+    "gemini",
+    "claude",
+    "anthropic",
+    "ai-agent",
+    "codebase-analysis"
+  ],
+  "author": "Türker Yakup",
+  "license": "MIT",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "index.js",
+    "broker.js",
+    "broker-runtime.js"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TurkerYakup/mcp-server-google-antigravity.git"
+  },
+  "homepage": "https://github.com/TurkerYakup/mcp-server-google-antigravity#readme",
+  "bugs": {
+    "url": "https://github.com/TurkerYakup/mcp-server-google-antigravity/issues"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "zod": "^3.0.0"
+  },
+  "os": [
+    "win32",
+    "darwin",
+    "linux"
+  ]
+}
