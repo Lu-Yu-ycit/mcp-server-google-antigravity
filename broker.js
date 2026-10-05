@@ -575,13 +575,13 @@ class Broker {
         const cutoff = Date.now() - Math.max(0, Number(params.older_than_hours ?? 168)) * 3600000;
         const explicit = Boolean(params.jobId);
         const candidateMap = new Map([...this.jobs.values()]
-          .filter((job) => job.sessionId === session.sessionId && TERMINAL.has(job.status) && (explicit || Date.parse(job.finishedAt) < cutoff))
+          .filter((job) => job.sessionId === session.sessionId && TERMINAL.has(job.status) && (explicit || Date.parse(job.finishedAt) <= cutoff))
           .map((job) => [job.jobId, job]));
         let files = [];
         try { files = fs.readdirSync(JOBS_DIR).filter((name) => JOB_FILE.test(name)); } catch (error) { this.recordMaintenanceError(error); }
         for (const file of files) {
           const diskJob = read(path.join(JOBS_DIR, file));
-          if (diskJob?.sessionId === session.sessionId && TERMINAL.has(diskJob.status) && (explicit || Date.parse(diskJob.finishedAt) < cutoff)) candidateMap.set(diskJob.jobId, diskJob);
+          if (diskJob?.sessionId === session.sessionId && TERMINAL.has(diskJob.status) && (explicit || Date.parse(diskJob.finishedAt) <= cutoff)) candidateMap.set(diskJob.jobId, diskJob);
         }
         const candidates = [...candidateMap.values()];
         if (params.all) {
