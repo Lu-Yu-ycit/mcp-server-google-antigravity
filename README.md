@@ -132,5 +132,5 @@ npm test
 ---
 
 ## License
-
+Author: c:)alm
 [MIT](LICENSE)
