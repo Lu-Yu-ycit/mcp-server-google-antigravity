@@ -33,7 +33,7 @@ A Model Context Protocol (MCP) server providing an MCP facade and per-user globa
                       +-----------------------------+
 ```
 
-1. **MCP Facade (`index.js`)**: Connects to the per-user background broker. Forwards requests with an explicit session id, allowing multiple projects/IDE instances to share a single background broker and OAuth state without sharing conversations.
+1. **MCP Facade (`index.js`)**: Connects to the per-user background broker. Each facade process owns one stable session id and one Broker connection, allowing multiple projects/IDE instances to share a background broker and OAuth state without switching owners on a single socket or sharing conversations.
 2. **Global Broker (`broker.js`)**: Central background daemon managing job scheduling, worker pooling (stream-json), session lifecycle, file sandboxing, and job persistence.
 3. **Workers**: Persistent child processes running `agy` in `stream-json` input/output format, warm-reused across consecutive turns to minimize startup latency.
 
@@ -83,7 +83,7 @@ Add the server to your MCP client configuration (e.g., `claude_desktop_config.js
 | `AGY_MAX_WORKERS` | `3` | Maximum concurrent persistent CLI workers. |
 | `AGY_WORKER_IDLE_TTL_MS` | `600000` (10m) | Idle duration before an unused worker is evicted. |
 | `AGY_AUTO_APPROVE` | `true` | Automatically approve non-interactive tool operations via `--dangerously-skip-permissions`. |
-| `AGY_SESSION_ID` | (auto-generated) | Logical session identifier. |
+| `AGY_SESSION_ID` | (auto-generated per facade process) | Fixed logical session identifier for this MCP facade. Tool arguments cannot override it. |
 | `AGY_SESSION_TOKEN` | (HMAC-derived) | Session ownership token for isolation. |
 | `AGY_WORKSPACE` | `process.cwd()` | Initial fixed workspace for newly created sessions. Existing sessions keep their workspace. |
 

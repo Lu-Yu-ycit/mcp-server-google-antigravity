@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /*
  * MCP facade.  The facade is intentionally stateless: it connects to one
- * per-user broker and forwards requests with an explicit session id.  This is
- * what lets many Codex projects share one broker without sharing a default
- * conversation.
+ * per-user broker and forwards requests with the facade's process-stable
+ * session id. Each MCP facade owns one broker connection/session, so a single
+ * Named Pipe socket can never switch owners between requests.
  */
 const { McpServer } = require("@modelcontextprotocol/sdk/server/mcp.js");
 const { StdioServerTransport } = require("@modelcontextprotocol/sdk/server/stdio.js");
@@ -133,10 +133,9 @@ class BrokerClient {
         continue;
       }
       const id = this.nextId++;
-      const effectiveSessionId = (params && params.session_id) || sessionId;
       const request = Object.assign({}, params || {}, {
-        session_id: effectiveSessionId,
-        session_token: (params && params.session_token) || deriveSessionToken(effectiveSessionId),
+        session_id: sessionId,
+        session_token: sessionToken,
         _broker_token: brokerSecret,
       });
       if (params && params.workspace) {
@@ -181,10 +180,9 @@ function errorResult(error, method) {
   return { isError: true, content: [{ type: "text", text: JSON.stringify({ ok: false, error: String(error.message || error), method }) }] };
 }
 function withSession(params) {
-  const effectiveSessionId = (params && params.session_id) || sessionId;
   const result = Object.assign({}, params || {}, {
-    session_id: effectiveSessionId,
-    session_token: (params && params.session_token) || deriveSessionToken(effectiveSessionId),
+    session_id: sessionId,
+    session_token: sessionToken,
     _workspace_explicit: Boolean(params && params.workspace),
   });
   if (params && params.workspace) {
@@ -213,7 +211,6 @@ define("use_antigravity", "Delegate a task to the global Antigravity broker. Job
   print_timeout: z.string().optional(),
   write_to_file: z.string().optional(),
   extract: z.enum(["last_code_block"]).optional(),
-  session_id: z.string().optional().describe("Stable logical session id; defaults to this Codex MCP process"),
   workspace: z.string().optional().describe("Session workspace; must be inside AGY_ALLOWED_ROOTS"),
 }, "use", (params) => {
   const prefix = params.thinking_depth === "low" ? "Answer briefly and directly.\n\n" : params.thinking_depth === "high" ? "Think step by step very carefully before answering.\n\n" : "";
@@ -233,7 +230,6 @@ define("antigravity_continue", "Continue the conversation bound to this isolated
   print_timeout: z.string().optional(),
   write_to_file: z.string().optional(),
   extract: z.enum(["last_code_block"]).optional(),
-  session_id: z.string().optional(),
   workspace: z.string().optional(),
 }, "continue", (params) => {
   const prefix = params.thinking_depth === "low" ? "Answer briefly and directly.\n\n" : params.thinking_depth === "high" ? "Think step by step very carefully before answering.\n\n" : "";
@@ -242,39 +238,35 @@ define("antigravity_continue", "Continue the conversation bound to this isolated
 
 define("antigravity_add_directory", "Approve an additional directory for this session. The path must be inside AGY_ALLOWED_ROOTS.", {
   path: z.string().describe("Directory to add to the session"),
-  session_id: z.string().optional(),
 }, "add_directory", (params) => withSession(params));
 
 define("antigravity_remove_directory", "Remove a previously approved additional directory from this session.", {
   path: z.string().describe("Directory to remove from the session"),
-  session_id: z.string().optional(),
 }, "remove_directory", (params) => withSession(params));
 
 define("antigravity_list_directories", "List the fixed session workspace and approved additional directories.", {
-  session_id: z.string().optional(),
 }, "list_directories", (params) => withSession(params));
 
 define("antigravity_result", "Get the result of a centrally managed Antigravity job.", {
   jobId: z.string(),
   wait_ms: z.number().optional(),
   poll_interval_ms: z.number().optional(),
-  session_id: z.string().optional(),
 }, "result");
 
-define("antigravity_jobs", "List centrally managed Antigravity jobs owned by this session.", { session_id: z.string().optional() }, "jobs");
-define("antigravity_sessions", "Show this session's bound conversation, configuration, and worker.", { session_id: z.string().optional() }, "sessions");
-define("antigravity_auth_retry", "Reset the broker authentication gate after interactive agy sign-in.", { session_id: z.string().optional() }, "auth_retry");
-define("antigravity_cancel", "Cancel a centrally managed Antigravity job.", { jobId: z.string(), session_id: z.string().optional() }, "cancel");
-define("antigravity_cleanup", "List old job records or delete one explicitly selected terminal record.", { older_than_hours: z.number().optional(), jobId: z.string().optional(), all: z.boolean().optional(), session_id: z.string().optional() }, "cleanup");
-define("antigravity_models", "List available Antigravity/Gemini models through the broker.", { session_id: z.string().optional() }, "models");
-define("antigravity_agents", "List available agy agent profiles through the broker.", { session_id: z.string().optional() }, "agents");
-define("antigravity_health", "Check the global broker, worker pool, agy CLI, and persisted job state.", { session_id: z.string().optional() }, "health");
+define("antigravity_jobs", "List centrally managed Antigravity jobs owned by this session.", {}, "jobs");
+define("antigravity_sessions", "Show this session's bound conversation, configuration, and worker.", {}, "sessions");
+define("antigravity_auth_retry", "Reset the broker authentication gate after interactive agy sign-in.", {}, "auth_retry");
+define("antigravity_cancel", "Cancel a centrally managed Antigravity job.", { jobId: z.string() }, "cancel");
+define("antigravity_cleanup", "List old job records or delete one explicitly selected terminal record.", { older_than_hours: z.number().optional(), jobId: z.string().optional(), all: z.boolean().optional() }, "cleanup");
+define("antigravity_models", "List available Antigravity/Gemini models through the broker.", {}, "models");
+define("antigravity_agents", "List available agy agent profiles through the broker.", {}, "agents");
+define("antigravity_health", "Check the global broker, worker pool, agy CLI, and persisted job state.", {}, "health");
 
-define("antigravity_create_folder", "Create a folder through the broker filesystem service.", { path: z.string(), session_id: z.string().optional() }, "create_folder");
-define("antigravity_create_file", "Create/write a text file through the broker filesystem service.", { path: z.string(), content: z.string().optional(), overwrite: z.boolean().optional(), session_id: z.string().optional() }, "create_file");
-define("antigravity_create_tree", "Create a folder/file tree through the broker filesystem service.", { base_path: z.string(), spec: z.record(z.any()), session_id: z.string().optional() }, "create_tree");
-define("antigravity_list_dir", "List a directory through the broker filesystem service.", { path: z.string(), session_id: z.string().optional() }, "list_dir");
-define("antigravity_read_file", "Read a UTF-8 file through the broker filesystem service.", { path: z.string(), max_bytes: z.number().optional(), session_id: z.string().optional() }, "read_file");
+define("antigravity_create_folder", "Create a folder through the broker filesystem service.", { path: z.string() }, "create_folder");
+define("antigravity_create_file", "Create/write a text file through the broker filesystem service.", { path: z.string(), content: z.string().optional(), overwrite: z.boolean().optional() }, "create_file");
+define("antigravity_create_tree", "Create a folder/file tree through the broker filesystem service.", { base_path: z.string(), spec: z.record(z.any()) }, "create_tree");
+define("antigravity_list_dir", "List a directory through the broker filesystem service.", { path: z.string() }, "list_dir");
+define("antigravity_read_file", "Read a UTF-8 file through the broker filesystem service.", { path: z.string(), max_bytes: z.number().optional() }, "read_file");
 
 const transport = new StdioServerTransport();
 server.connect(transport);
