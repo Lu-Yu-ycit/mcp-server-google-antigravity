@@ -203,7 +203,7 @@ function within(root, target) {
   return relative === '' || (!relative.startsWith('..' + path.sep) && relative !== '..' && !path.isAbsolute(relative));
 }
 
-const DEFAULT_CONFIG = { model: process.env.AGY_MODEL || null, autoApprove: process.env.AGY_AUTO_APPROVE !== 'false', sandbox: process.env.AGY_SANDBOX === 'true', printTimeout: process.env.AGY_PRINT_TIMEOUT || '10m', agent: null, project: null, mode: null, addDirs: [], cwd: defaultWorkspace };
+const DEFAULT_CONFIG = { model: process.env.AGY_MODEL || null, autoApprove: process.env.AGY_AUTO_APPROVE !== 'false', sandbox: process.env.AGY_SANDBOX === 'true', printTimeout: process.env.AGY_PRINT_TIMEOUT || '15m', agent: null, project: null, mode: null, addDirs: [], cwd: defaultWorkspace };
 const DEFAULT_ALLOWED_ROOTS = [...new Set([userHome, process.cwd()])].filter((value) => { try { return fs.existsSync(value); } catch (_) { return false; } });
 const CONFIG_FIELDS = { model: 'model', auto_approve: 'autoApprove', sandbox: 'sandbox', print_timeout: 'printTimeout', agent: 'agent', project: 'project', mode: 'mode', add_dirs: 'addDirs' };
 function argsFor(config, conversation, fresh) {
